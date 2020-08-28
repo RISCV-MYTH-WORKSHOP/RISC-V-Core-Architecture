@@ -26,3 +26,7 @@ $reset = *reset;
 
    $num[31:0] = $reset ? 1 :                  
                  (>>1$num + >>2$num); 
+//Counter
+$reset = *reset;
+   $num[31:0] = $reset ? 0 :                  
+                 (>>1$num + 1); 
