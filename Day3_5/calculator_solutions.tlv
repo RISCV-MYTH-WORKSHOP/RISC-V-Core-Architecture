@@ -21,3 +21,8 @@ $reset = *reset;
            //default :
            $div[31:0];  
 
+//Fibonacci
+$reset = *reset;
+
+   $num[31:0] = $reset ? 1 :                  
+                 (>>1$num + >>2$num); 
