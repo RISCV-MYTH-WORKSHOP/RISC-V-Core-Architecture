@@ -154,3 +154,58 @@ $reset = *reset;
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = *cyc_cnt > 40;
    *failed = 1'b0;
+
+// 2 cycle calc with validity
+   
+   |calc
+      @1
+         $reset = *reset;
+      ?$valid_or_reset = $valid || $reset :
+         
+         @1
+            $valid = $cnt;
+            
+            $val2[31:0] = $rand2[3:0];
+            $val1[31:0] = >>2$out[31:0];
+            $sum[31:0] = $val1[3:0] + $val2[3:0];
+            $diff[31:0] = $val1[3:0] - $val2[3:0];
+            $prod[31:0] = $val1[3:0] * $val2[3:0];
+            $quot[31:0] = $val1[3:0] / $val2[3:0];
+
+
+            $cnt[1:0] = $reset ? 0 :                  
+                        (>>1$cnt[1:0] + 1);
+
+         @2
+            $mem[31:0] = $out[31:0];
+            $out[31:0] =  
+                  ($op[2:0] == 3'b000) 
+                    ? $sum[31:0] :
+                  ($op[2:0] == 3'b001)
+                    ? $diff[31:0] :
+                  ($op[2:0] == 3'b010) 
+                    ? $prod[31:0] :
+                  ($op[2:0] == 3'b011)
+                    ? $quot[31:0] :
+                  ($op[2:0] == 3'b100)
+                    ? >>2$mem[31:0] :
+                  ($op[2:0] == 3'b101)
+                    ? $mem[31:0] :
+                  ($op[2:0] == 3'b110)
+                    ? >>2$mem[31:0] :
+                  ($op[2:0] == 3'b111)
+                    ? >>2$out[31:0] :
+                    //default
+                       32'b00;
+                       
+            $mem[31:0] = 
+                  ($op[1:0] == 2'b00)
+                    ? $out[31:0] :
+                   ($op[1:0] == 2'b01)
+                    ? >>2$mem[31:0] :
+                   ($op[1:0] == 2'b10)
+                    ? >>2$out[31:0] :
+                    //default
+                     32'b00;
+
+   
