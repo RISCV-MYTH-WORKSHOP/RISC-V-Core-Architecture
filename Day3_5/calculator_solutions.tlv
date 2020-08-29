@@ -114,4 +114,43 @@ $reset = *reset;
                      >>1$tot_dist;  // or $RETAIN to keep prev value
 !  *passed = *cyc_cnt > 16'd30;
              
+ // 2 cycle calc with validity
+   
+   |calc
+      @1
+         $reset = *reset;
+      ?$valid_or_reset = $valid || $reset :
          
+         @1
+            $valid = $cnt;
+            $op[1:0] = $rand1[1:0];
+            $val2[31:0] = $rand2[3:0];
+            $val1[31:0] = >>2$out[31:0];
+            $sum[31:0] = $val1[3:0] + $val2[3:0];
+            $diff[31:0] = $val1[3:0] - $val2[3:0];
+            $prod[31:0] = $val1[3:0] * $val2[3:0];
+            $quot[31:0] = $val1[3:0] / $val2[3:0];
+
+
+            $cnt[1:0] = $reset ? 0 :                  
+                        (>>1$cnt[1:0] + 1);
+
+         @2
+
+            $out[31:0] =  
+                  ($op[1:0] == 00) 
+                    ? $sum[31:0] :
+              ($op[1:0] == 01)
+                ? $diff[31:0] :
+              ($op[1:0] == 2'b10) 
+                ? $prod[31:0] :
+              ($op[1:0] == 2'b11)
+                ? $quot[31:0] :
+              //default
+                  32'b00;
+
+   
+
+   // Assert these to end simulation (before Makerchip cycle limit).
+   *passed = *cyc_cnt > 40;
+   *failed = 1'b0;
