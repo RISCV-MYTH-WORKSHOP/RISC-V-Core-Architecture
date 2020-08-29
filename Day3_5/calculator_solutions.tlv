@@ -61,3 +61,40 @@ $reset = *reset;
          $cnt[31:0] = $reset ? 0 :                  
                      (>>1$cnt + 1);
 
+
+   //2 cycle calc
+   |calc
+      @0
+         $reset = *reset;
+         
+      @1
+         $valid = $cnt;
+         $op[1:0] = $rand1[1:0];
+         $val2[31:0] = $rand2[3:0];
+         $val1[31:0] = >>2$out[31:0];
+         $sum[31:0] = $val1[3:0] + $val2[3:0];
+         $diff[31:0] = $val1[3:0] - $val2[3:0];
+         $prod[31:0] = $val1[3:0] * $val2[3:0];
+         $quot[31:0] = $val1[3:0] / $val2[3:0];
+         
+             
+         $cnt[1:0] = $reset ? 0 :                  
+                     (>>1$cnt[1:0] + 1);
+                     
+      @2
+            
+         $out[31:0] =  $reset ? 32'b0 :
+           ($op[1:0] == 00) 
+             ? $sum[31:0] :
+           ($op[1:0] == 01)
+             ? $diff[31:0] :
+           ($op[1:0] == 2'b10) 
+             ? $prod[31:0] :
+           ($op[1:0] == 2'b11)
+             ? $quot[31:0] :
+           //default
+               32'b00;
+              
+            
+             
+         
