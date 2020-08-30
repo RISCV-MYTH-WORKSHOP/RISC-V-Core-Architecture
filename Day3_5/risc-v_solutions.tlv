@@ -31,6 +31,13 @@ $reset = *reset;
          $is_b_instr = $instr[6:2] ==? 5'b11000;
          $is_j_instr = $instr[6:2] ==? 5'b11011;
          $is_u_instr = $instr[6:2] ==? 5'b0x101;
+         
+    //decoding immediate fields
+         $imm[31:0] = $is_i_instr ? {{21{$instr[31]}},$instr[30:20]} :
+                      $is_s_instr ? {{21{$instr[31]}}, $instr[30:7]} :
+                      $is_b_instr ? {{20{$instr[31]}},$instr[7], $instr[30:8]} :
+                      $is_u_instr ? {$instr[31], $instr[30:12]} :
+                      $is_j_instr ? {{12{$instr[31]}}, $instr[19:12], $instr[20], $instr[30:21]};
       
       
       
