@@ -41,8 +41,9 @@
       @0
          $reset = *reset;
          
-         $pc[31:0] = >>1$reset ? 0                   
-                       : (>>1$pc + 32'd4);
+         $pc[31:0] = >>1$reset ? 32'b0 :                
+                     >>1$taken_br[31:0] ? >>1$br_tgt_pc[31:0] :
+                    (>>1$pc + 32'd4);
 
          
 
@@ -118,7 +119,16 @@
          $result[31:0] = $is_addi ? $src1_value + $imm :
                          $is_add ? $src1_value + $src2_value :
                          32'bx;
-      
+      //branch instructions
+         $taken_branch = $is_beq ? ($src1_value == $src2_value) :
+                         $is_bne ? ($src1_value != $src2_value) :
+                         $is_blt ? (($src1_value < $src2_value) ^ ($src1_value[31] != ($src2_value[31]))) :
+                         $is_bge ? (($src1_value >= $src2_value) ^ ($src1_value[31] != ($src2_value[31]))) :
+                         $is_bltu ? ($src1_value < $src2_value) :
+                         $is_bgeu ? ($src1_value >= $src2_value) :
+                                    1'b0;
+                                    
+         $br_tgt_pc[31:0] = $pc + $imm;
 
    // Assert these to end simulation (before Makerchip cycle limit).
    *passed = *cyc_cnt > 40;
