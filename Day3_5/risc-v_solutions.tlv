@@ -322,7 +322,7 @@
          $is_sra = $dec_bits ==? 11'b1_101_0110011;
          $is_or = $dec_bits ==? 11'b0_110_0110011;
          $is_and = $dec_bits ==? 11'b0_111_0110011;
-         `BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add $is_lui $is_auipc $is_jal $is_jalr $is_load $is_sb $is_sh $is_sw $is_slti $is_sltiu $is_xori $is_ori $is_andi $is_slli $is_srli $is_srai $is_sub $is_sll $is_slt $is_sltu $is_xor $is_srl $is_sra $is_or $is_and)
+         `//BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add $is_lui $is_auipc $is_jal $is_jalr $is_load $is_sb $is_sh $is_sw $is_slti $is_sltiu $is_xori $is_ori $is_andi $is_slli $is_srli $is_srai $is_sub $is_sll $is_slt $is_sltu $is_xor $is_srl $is_sra $is_or $is_and)
 
          $rf_rd_en2 = $rs2_valid;
          $rf_rd_index2[4:0] = $rs2[4:0];
