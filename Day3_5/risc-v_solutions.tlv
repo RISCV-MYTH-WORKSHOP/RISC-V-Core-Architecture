@@ -42,20 +42,22 @@
          $reset = *reset;
          
          $pc[31:0] = >>1$reset ? 32'b0 :                
-                     >>1$taken_br[31:0] ? >>1$br_tgt_pc[31:0] :
-                    (>>1$pc + 32'd4);
-
+                     >>1$taken_branch ? >>1$br_target_pc[31:0] :
+                     (>>1$pc + 32'd4);
+                    
+      
          
 
       @1
          
          $imem_rd_en[1:0] = !$reset;
-         $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_CNT+1:2];
+         $imem_rd_addr[M4_IMEM_INDEX_CNT-1:0] = $pc[M4_IMEM_INDEX_CNT+1:2];
          $instr[31:0] = $imem_rd_data[31:0];
             
          //decoding instr type
          $is_i_instr = $instr[6:2] ==? 5'b0000x ||
-                       $instr[6:2] ==? 5'b001x0;
+                       $instr[6:2] ==? 5'b001x0 ||
+                       $instr[6:2] ==? 5'b11001;
          $is_r_instr = $instr[6:2] ==? 5'b01011||
                        $instr[6:2] ==? 5'b01100 ||
                        $instr[6:2] ==? 5'b01110 ||
@@ -67,17 +69,17 @@
          
          //decoding immediate fields
          $imm[31:0] = $is_i_instr ? {{21{$instr[31]}},$instr[30:20]} :
-                      $is_s_instr ? {{21{$instr[31]}}, $instr[30:7]} :
-                      $is_b_instr ? {{20{$instr[31]}},$instr[7], $instr[30:8], 1'b00} :
+                      $is_s_instr ? {{21{$instr[31]}}, $instr[30:25], $instr[11:8], $instr[7]} :
+                      $is_b_instr ? {{20{$instr[31]}}, {2{$instr[7]}}, $instr[30:25],$instr[11:8], 1'b0} :
                       $is_u_instr ? {$instr[31], $instr[30:12], 12'b00} :
-                      $is_j_instr ? {{12{$instr[31]}}, $instr[19:12], $instr[20], $instr[30:21], 1'b00} :
+                      $is_j_instr ? {{12{$instr[31]}}, $instr[19:12], {2{$instr[20]}}, $instr[30:25], $instr[24:21], 1'b00} :
                                      32'b00;
          
          //extracting other instruction fields and putting when cond.
          
          $funct7_valid = $is_r_instr;
          ?$funct7_valid
-            $funct7[6:0] = $instr[31:25];
+            $funct7[7:0] = $instr[31:25];
             
          $funct3_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr;
          ?$funct3_valid
@@ -86,40 +88,72 @@
          $rs1_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr;
          ?$rs1_valid
             $rs1[4:0] = $instr[19:15];
-            $rf_rd_index1[4:0] = $rf_rd_en1;
+            
+            
             
          $rs2_valid = $is_r_instr || $is_s_instr || $is_b_instr;
          ?$rs2_valid
             $rs2[4:0] = $instr[24:20];
-            $rf_rd_index2[4:0] = $rf_rd_en2;
+            
             
          $rd_valid = $is_r_instr || $is_i_instr || $is_u_instr || $is_j_instr;
          ?$rd_valid
             $rd[4:0] = $instr[11:7];
             
+            
+            
          $opcode_valid = $is_r_instr || $is_i_instr || $is_s_instr || $is_b_instr || $is_u_instr|| $is_j_instr;
          ?$opcode_valid
             $opcode[6:0] = $instr[6:0];
-            
-    //individual instructions
+         
+         //individual instructions
          $dec_bits[10:0] = 
             {$funct7[5], $funct3, $opcode};
          $is_beq = $dec_bits ==? 
                    11'bx_000_1100011;
+         $is_bne = $dec_bits ==? 
+                   11'bx_001_1100011;
+         $is_blt = $dec_bits ==? 
+                   11'bx_100_1100011;
+         $is_bge = $dec_bits ==? 
+                   11'bx_101_1100011;   
+         $is_bltu = $dec_bits ==? 
+                   11'bx_110_1100011;  
+         $is_bgeu = $dec_bits ==? 
+                   11'bx_111_1100011; 
+         $is_addi = $dec_bits ==? 
+                   11'bx_000_0010011;         
          $is_add = $dec_bits ==? 
                    11'b0_000_0110011;
-         $is_addi = $dec_bits ==? 
-                   11'bx_000_0010011;
          
-     //register files
+         
+                   
+                 
+         //until instrs are implemented
+         //to quiet down the warnings
+         //'BOGUS_USE($is_beq $is_bne $is_blt $is_bge $is_bltu $is_bgeu $is_addi $is_add)
+         
+         //register files
          $src1_value[31:0] = $rf_rd_data1;
          $src2_value[31:0] = $rf_rd_data2;
+         
+         $rf_rd_index1[5:0] = $rs1;
+         $rf_rd_index2[5:0] = $rs2;
+         $rf_rd_en1 = $rs1_valid;
+         $rf_rd_en2 = $rs2_valid;
+         
+         
+         $rf_wr_data[31:0] = $result;
+         $rf_wr_en = 
+                    $rd_valid && $rd[4:0] != 5'b00;
+         $rf_wr_index[4:0] = $rd;
          
          //ALU
          $result[31:0] = $is_addi ? $src1_value + $imm :
                          $is_add ? $src1_value + $src2_value :
                          32'bx;
-      //branch instructions
+                         
+         //branch instructions
          $taken_branch = $is_beq ? ($src1_value == $src2_value) :
                          $is_bne ? ($src1_value != $src2_value) :
                          $is_blt ? (($src1_value < $src2_value) ^ ($src1_value[31] != ($src2_value[31]))) :
@@ -128,10 +162,18 @@
                          $is_bgeu ? ($src1_value >= $src2_value) :
                                     1'b0;
                                     
-         $br_tgt_pc[31:0] = $pc + $imm;
+         $br_target_pc[31:0] = $pc + $imm;
+    
+       
+      
 
+
+
+     
+   
    // Assert these to end simulation (before Makerchip cycle limit).
-   *passed = *cyc_cnt > 40;
+   *passed = |cpu/xreg[10]>>5$value == (1+2+3+4+5+6+7+8+9) ;
+   
    *failed = 1'b0;
    
    // Macro instantiations for:
@@ -141,7 +183,7 @@
    //  o CPU visualization
    |cpu
       m4+imem(@1)    // Args: (read stage)
-      //m4+rf(@1, @1)  // Args: (read stage, write stage) - if equal, no register bypass is required
+      m4+rf(@1, @1)  // Args: (read stage, write stage) - if equal, no register bypass is required
       //m4+dmem(@4)    // Args: (read/write stage)
    
    m4+cpu_viz(@4)    // For visualisation, argument should be at least equal to the last stage of CPU logic
@@ -149,5 +191,3 @@
 \SV
    endmodule
 
-      
-      
